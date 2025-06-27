@@ -86,7 +86,7 @@ weighted_mean <- function(x, w) {
 ##need to grab data from repo and set up public repo##
 
 # microdata <- readRDS("microshock/2.SPEI/2.Output/microdata_spei_merge.RDS")
-microdata <- readRDS("microdata_spei_merge.RDS")
+microdata <- readRDS("input/microdata_spei_merge.RDS")
 num_samples <- 20 # there are 1122 unique lvl2's for Colombia..
 set.seed(1234)
 
@@ -220,13 +220,13 @@ model_binary_con <- glmer(Loss ~LogFSIZE*Event+ (1|LVL0/SRAU),
                       control = glmerControl(optimizer = "nlopt", calc.derivs = TRUE))
 
 #save model
-saveRDS(model_binary_con, "Out/model_binary_con.RDS")
+saveRDS(model_binary_con, "out/model_binary_con.RDS")
 
 #plot
 eff_bin <- ggpredict(model_binary_con, terms = c("LogFSIZE", "Event"))
 plot(eff_bin)
 #save this plot
-ggsave("Out/model_binary_con.png", width = 8, height = 6)
+ggsave("figs/model_binary_con.png", width = 8, height = 6)
 
 #some checks.. dist seems off..
 simulationOutput <- simulateResiduals(fittedModel = model_binary, plot = T)
@@ -266,13 +266,13 @@ model_con <- glmmTMB(Lost.Revenue ~LogFSIZE*Event+ (1|LVL0/SRAU/SSU),
                        # weights=HHWGT,
                    cont_loss_nc)
 summary(model_con )
-saveRDS(model_con, "Out/model_con.RDS")
+saveRDS(model_con, "out/model_con.RDS")
 
 #plot
 eff_con <- ggpredict(model_con, terms = c("LogFSIZE", "Event"))
 plot(eff_con)
 #save this plot
-ggsave("Out/model_con.png", width = 8, height = 6)
+ggsave("figs/model_con.png", width = 8, height = 6)
 
 #Model check https://cran.r-project.org/web/packages/DHARMa/vignettes/DHARMa.html
 #distributional assumptions incorrect.
@@ -311,8 +311,8 @@ plot(eff_con_qgam)
 
 
 #save this plot
-ggsave("Out/model_con_gam.png", width = 8, height = 6)
-saveRDS(cont_qgam, "Out/cont_qgam.RDS")
+ggsave("out/model_con_gam.png", width = 8, height = 6)
+saveRDS(cont_qgam, "out/cont_qgam.RDS")
 o<-getViz(cont)
 check(o) + l_gridQCheck2D(qu = 0.5)
 
@@ -337,10 +337,10 @@ summary(brms_model_binary_con)
 # And get credible intervals for the parameters
 posterior_summary(brms_model_binary_con)
 
-saveRDS(brms_model_binary_con, "Out/brms_bin.RDS")
+saveRDS(brms_model_binary_con, "out/brms_bin.RDS")
 
 # You can also use ggpredict with the brms object
 library(ggeffects)
 predicted_values <- ggpredict(brms_model_binary_con, terms = c("LogFSIZE", "Event"))
 plot(predicted_values)
-ggsave("Out/model_bin_brms.png", width = 8, height = 6)
+ggsave("figs/model_bin_brms.png", width = 8, height = 6)

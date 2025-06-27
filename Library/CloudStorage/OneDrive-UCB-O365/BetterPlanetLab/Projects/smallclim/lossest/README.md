@@ -46,6 +46,17 @@ Several data quality issues were identified and corrected:
 - **Household weights**: Rounded to integers and NA/zero values replaced with 1
 - **Geographic hierarchy**: Smallest Sampling Unit (SSU) determined using `afn.findssu()` function
 
+### Country Coverage by Analysis Type
+
+#### Binary Loss Analysis (Production Loss Occurrence)
+**Countries included**: Albania, Bangladesh, Burkina Faso, Ethiopia, Guatemala, India, Mali, Malawi, Mexico, Niger, Nigeria, Pakistan, Tanzania, Timor-Leste, Uganda
+*Note: Colombia excluded due to sample size - alternative sampling approach available*
+
+#### Continuous Loss Analysis (Revenue Loss Percentage)  
+**Countries with drought data**: Burkina Faso, India, Mali, Niger, Pakistan
+**Countries with flood data**: Niger, Pakistan
+*Note: Continuous loss analysis requires specific survey questions about harvest amounts and losses, available in fewer countries*
+
 ### Statistical Models
 
 The analysis implements multiple statistical approaches to model the relationship between farm size and production losses:
@@ -117,13 +128,7 @@ Where:
 - `f₁, f₂`: Smooth random effect terms
 - Implemented using `qgamV()` from mgcViz package
 
-### Model Assumptions and Diagnostics
-
-#### Key Assumptions:
-1. **Independence**: Observations independent conditional on random effects
-2. **Linearity**: Log-linear relationship between log(farm size) and log-odds/logit(revenue loss)
-3. **Random effects normality**: Country, SRAU, and SSU effects normally distributed
-4. **Beta distribution appropriateness**: Revenue loss follows beta distribution (continuous models)
+### Model Diagnostics
 
 #### Diagnostic Procedures:
 - **DHARMa residual analysis**: `simulateResiduals()` for distributional assumption checking
@@ -156,6 +161,28 @@ Due to Colombia's large sample size (>1 million observations), the analysis impl
 - `model_con.png`: Predicted revenue loss proportion by farm size and event type
 - `model_bin_brms.png`: Bayesian model predictions
 - `model_con_gam.png`: Quantile regression predictions
+
+## Key Results and Visualizations
+
+### Binary Loss Models: Probability of Production Loss
+
+![Binary Loss Model - Frequentist Approach](figs/model_binary_con.png)
+
+*Figure 1: Predicted probability of experiencing production loss by farm size (log scale) for drought and flood events. Based on mixed-effects logistic regression across 15 countries.*
+
+![Binary Loss Model - Bayesian Approach](figs/model_bin_brms.png)
+
+*Figure 2: Bayesian estimates of loss probability by farm size and event type, showing credible intervals for uncertainty quantification.*
+
+### Continuous Loss Models: Revenue Loss Percentage
+
+![Continuous Loss Model](figs/model_con.png)
+
+*Figure 3: Predicted percentage of revenue lost due to climate shocks by farm size. Based on beta regression for countries with detailed harvest/loss data.*
+
+![Quantile Regression Model](figs/model_con_gam.png)
+
+*Figure 4: Median regression estimates of revenue loss, providing robust estimates less sensitive to outliers.*
 
 ### Statistical Interpretation:
 
