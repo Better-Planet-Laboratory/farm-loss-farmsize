@@ -118,7 +118,7 @@ with Bernoulli family
 **Model Specification:**
 
 ```         
-Lost.Revenue ~ LogFSIZE * Event + (1|LVL0/SRAU/SSU)
+Lost.Revenue ~ LogFSIZE * Event + (1|LVL0/SRAU)
 ```
 
 **Mathematical Form:**
