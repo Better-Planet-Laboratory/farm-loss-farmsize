@@ -1,6 +1,6 @@
 #################################################################
 #################################################################
-########## SHOCKS x FARM SIZE ##########
+########## SHOCKS x FARM SIZE ################
 #################################################################
 #################################################################
 
@@ -82,10 +82,7 @@ weighted_mean <- function(x, w) {
 #################
 ### LOAD DATA ###
 #################
-
-##need to grab data from repo and set up public repo##
-
-# microdata <- readRDS("microshock/2.SPEI/2.Output/microdata_spei_merge.RDS")
+#see here https://github.com/Better-Planet-Laboratory/microshock
 microdata <- readRDS("input/microdata_spei_merge.RDS")
 num_samples <- 20 # there are 1122 unique lvl2's for Colombia..
 set.seed(1234)
@@ -186,13 +183,14 @@ microdata.allfix<-microdata.gfix %>% left_join(ratio_off, by = "LVL0") %>%
 #but at least in sensible range
 getdistros(microdata.allfix)
 
+
 ######################
-### BINARY COMBINED###
+####probability of loss###
 ######################
 
 #filter data
 binary_loss <- microdata.allfix %>%
-  select(HHID, HHWGT, SRAU, LVL0, LVL0.5, LVL1, LVL2, LVL3, FSIZE, FGROUP, PRODF, PRODD) %>%
+  select(HHID, HHWGT, SRAU, LVL0, LVL0.5, LVL1, LVL2, LVL3, FSIZE, FGROUP, PRODF, PRODD, minspei, maxspei) %>%
   pivot_longer( cols = starts_with("PROD"),
     names_to = "Event",
     values_to = "Loss" ) %>%
@@ -211,7 +209,6 @@ binary_loss <- microdata.allfix %>%
 #could return to this later, with prop random sampling across outcome
 binary_loss<-afn.findssu(binary_loss)
 binary_loss_nc<-binary_loss %>% filter(LVL0 != "Colombia")
-binary_loss_sc<-afn.samplecolombia(binary_loss)
 
 #check out continuous functions
 model_binary_con <- glmer(Loss ~LogFSIZE*Event+ (1|LVL0/SRAU),
@@ -233,12 +230,12 @@ simulationOutput <- simulateResiduals(fittedModel = model_binary, plot = T)
 testOutliers(model_binary_con, type = 'bootstrap')
 
 ######################
-###CONT COMBINED###
+####lost revenue####
 ######################
 
 #filter data
 cont_loss <- microdata.allfix %>%
-  select(HHID,HHWGT,SRAU,LVL0,LVL0.5,LVL1,LVL2,LVL3,FSIZE,FGROUP,HARVF,LOSTF,REVPF,HARVD,LOSTD,REVPD) %>%
+  select(HHID,HHWGT,SRAU,LVL0,LVL0.5,LVL1,LVL2,LVL3,FSIZE,FGROUP,HARVF,LOSTF,REVPF,HARVD,LOSTD,REVPD, minspei, maxspei) %>%
   pivot_longer(
     cols = starts_with("REV"),
     names_to = "Event",
@@ -258,12 +255,10 @@ cont_loss$Lost.Revenue<-as.numeric(recode(as.character(cont_loss$Loss),
                                                         "0" = "0.00001", "1"= "0.9999")) # revalue upper and lower
 #cut up with or without colombia...
 cont_loss_nc<-cont_loss %>% filter(LVL0 != "Colombia")
-cont_loss_sc<-afn.samplecolombia(cont_loss)
 
 #check out continuous functions
-model_con <- glmmTMB(Lost.Revenue ~LogFSIZE*Event+ (1|LVL0/SRAU/SSU),
+model_con <- glmmTMB(Lost.Revenue ~LogFSIZE*Event+ (1|LVL0/SRAU),
                           family=beta_family(link="logit"),
-                       # weights=HHWGT,
                    cont_loss_nc)
 summary(model_con )
 saveRDS(model_con, "out/model_con.RDS")
@@ -285,7 +280,7 @@ cont_loss_nc %>% group_by(LVL0, Event) %>% summarise()
 binary_loss_nc %>% group_by(LVL0, Event) %>% summarise()%>%print(n=30)
 
 ######################
-###QGAM example###
+###QGAM lost revenue###
 ######################
 
 #check to see if overall effects are massively different...
@@ -319,9 +314,9 @@ check(o) + l_gridQCheck2D(qu = 0.5)
 check1D(o, c("LogFSIZE")) +
   l_gridQCheck1D(qu = 0.5)
 
-######################
-######brms########
-######################
+######################################
+######brms probability of loss########
+##################################v
 
 library(brms)
 brms_model_binary_con <- brm(
@@ -340,7 +335,172 @@ posterior_summary(brms_model_binary_con)
 saveRDS(brms_model_binary_con, "out/brms_bin.RDS")
 
 # You can also use ggpredict with the brms object
-library(ggeffects)
+
 predicted_values <- ggpredict(brms_model_binary_con, terms = c("LogFSIZE", "Event"))
 plot(predicted_values)
 ggsave("figs/model_bin_brms.png", width = 8, height = 6)
+
+
+
+##############################################################
+######Models conditioned on extreme wet/dry spei in growing####
+###############################################################
+
+binary_loss_nc<-binary_loss_nc %>% filter(!is.na(maxspei) & !is.infinite(maxspei) &
+                                            !is.na(minspei) & !is.infinite(minspei))
+
+binary_loss_nc_th<-binary_loss_nc %>% filter(Event=="Flood" & maxspei> 1.49 | Event=="Drought" & minspei< -1.49 )
+
+unique(binary_loss_nc_th$LVL0)
+nrow(binary_loss_nc_th)/nrow(binary_loss_nc)
+
+#check out continuous functions
+model_binary_th <- glmer(Loss ~LogFSIZE*Event+ (1|LVL0/SRAU),
+                          family=binomial,
+                          data=binary_loss_nc_th,
+                          control = glmerControl(optimizer = "nlopt", calc.derivs = TRUE))
+
+#save model
+saveRDS(model_binary_th , "out/model_binary_th.RDS")
+
+#plot
+eff_bin <- ggpredict(model_binary_th, terms = c("LogFSIZE", "Event"))
+plot(eff_bin)
+#save this plot
+ggsave("figs/model_binary_th.png", width = 8, height = 6)
+
+
+cont_loss_nc<-cont_loss_nc %>% filter(!is.na(maxspei) & !is.infinite(maxspei) &
+                                            !is.na(minspei) & !is.infinite(minspei))
+cont_loss_nc_th<-cont_loss_nc %>% filter(Event=="Flood" & maxspei> 1.49 | Event=="Drought" & minspei< -1.49 )
+
+nrow(cont_loss_nc_th)/nrow(cont_loss_nc)
+
+#check out continuous functions
+model_con_th <- glmmTMB(Lost.Revenue ~LogFSIZE*Event+ (1|LVL0/SRAU),
+                     family=beta_family(link="logit"),
+                     cont_loss_nc_th)
+summary(model_con_th )
+saveRDS(model_con_th, "out/model_con_th.RDS")
+
+#plot
+eff_con_th <- ggpredict(model_con, terms = c("LogFSIZE", "Event"))
+plot(eff_con_th)
+#save this plot
+ggsave("figs/model_con_th.png", width = 8, height = 6)
+
+
+####################################################
+######Example spei FS interaction functions#######
+####################################################
+####commented out here, just given to demo#####
+
+##flex smooth function##
+flexible_smooth_adjustment <- function(eff_object,
+                                       safe_lower = -0.2,    
+                                       safe_upper = 0.2,     
+                                       target_at_safe = 0.001,
+                                       transition_width = 0.2) {
+  
+  # Store original values
+  original_pred <- eff_object$predicted
+  original_ci_low <- eff_object$conf.low
+  original_ci_high <- eff_object$conf.high
+  
+  for(i in 1:length(eff_object$x)) {
+    # Calculate original CI widths
+    ci_width_low <- original_pred[i] - original_ci_low[i]
+    ci_width_high <- original_ci_high[i] - original_pred[i]
+    
+    if(eff_object$x[i] >= safe_lower && eff_object$x[i] <= safe_upper) {
+      # In safe zone
+      eff_object$predicted[i] <- target_at_safe
+      eff_object$conf.low[i] <- target_at_safe * 0.5
+      eff_object$conf.high[i] <- target_at_safe * 1.5
+      
+    } else if(eff_object$x[i] < safe_lower && 
+              eff_object$x[i] > (safe_lower - transition_width)) {
+      # Transition zone on drought side
+      weight <- (eff_object$x[i] - (safe_lower - transition_width)) / transition_width
+      
+      # Interpolate predictions
+      eff_object$predicted[i] <- original_pred[i] * (1 - weight) + target_at_safe * weight
+      
+      # Interpolate CI widths
+      new_ci_low_width <- ci_width_low * (1 - weight) + (target_at_safe * 0.5) * weight
+      new_ci_high_width <- ci_width_high * (1 - weight) + (target_at_safe * 0.5) * weight
+      
+      eff_object$conf.low[i] <- eff_object$predicted[i] - new_ci_low_width
+      eff_object$conf.high[i] <- eff_object$predicted[i] + new_ci_high_width
+      
+    } else if(eff_object$x[i] > safe_upper && 
+              eff_object$x[i] < (safe_upper + transition_width)) {
+      # Transition zone on flood side
+      weight <- ((safe_upper + transition_width) - eff_object$x[i]) / transition_width
+      
+      # Interpolate predictions
+      eff_object$predicted[i] <- original_pred[i] * (1 - weight) + target_at_safe * weight
+      
+      # Interpolate CI widths
+      new_ci_low_width <- ci_width_low * (1 - weight) + (target_at_safe * 0.5) * weight
+      new_ci_high_width <- ci_width_high * (1 - weight) + (target_at_safe * 0.5) * weight
+      
+      eff_object$conf.low[i] <- eff_object$predicted[i] - new_ci_low_width
+      eff_object$conf.high[i] <- eff_object$predicted[i] + new_ci_high_width
+      
+    } else {
+      # Outside transition zones - keep original but maintain CI proportions
+      if(original_pred[i] > 0) {
+        ci_ratio_low <- ci_width_low / original_pred[i]
+        ci_ratio_high <- ci_width_high / original_pred[i]
+        
+        eff_object$conf.low[i] <- eff_object$predicted[i] - (eff_object$predicted[i] * ci_ratio_low)
+        eff_object$conf.high[i] <- eff_object$predicted[i] + (eff_object$predicted[i] * ci_ratio_high)
+      }
+    }
+    
+    # Ensure bounds
+    eff_object$conf.low[i] <- max(eff_object$conf.low[i], target_at_safe/2)
+  }
+  
+  return(eff_object)
+}
+
+#filter data binary case...
+binary_loss_nc_fl<-binary_loss_nc %>% filter(Event=="Flood")
+binary_loss_nc_dr<-binary_loss_nc %>% filter(Event=="Drought")
+
+
+##fit model and explore
+binary_fl <- glmer(
+  Loss ~ LogFSIZE*maxspei+ (1|LVL0/SRAU),
+  family = binomial,
+  data = binary_loss_nc_fl,
+)
+
+
+##fit model and explore
+binary_dr <- glmer(
+  Loss ~ LogFSIZE*minspei+ (1|LVL0/SRAU),
+  family = binomial,
+  data = binary_loss_nc_dr,
+)
+
+eff_bin_glmer_dr <- ggpredict(binary_dr, terms = c("minspei","LogFSIZE"))
+plot(eff_bin_glmer_dr)
+
+eff_bin_glmer_fl <- ggpredict(binary_fl, terms = c("maxspei","LogFSIZE"))
+plot(eff_bin_glmer_fl)
+
+eff_adjusted <- flexible_smooth_adjustment(eff_bin_glmer_dr,
+                                           safe_lower = -0.3,
+                                           safe_upper = 20,
+                                           transition_width = 0.8)
+plot(eff_adjusted)
+
+
+eff_adjusted <- flexible_smooth_adjustment(eff_bin_glmer_fl,
+                                           safe_lower = -20,
+                                           safe_upper = -0.3,
+                                           transition_width = 0.8)
+plot(eff_adjusted)
