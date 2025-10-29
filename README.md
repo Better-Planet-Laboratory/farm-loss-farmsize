@@ -1,10 +1,4 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
-# Agricultural Loss Estimation 
+# Loss x farm size
 
 ## Overview
 
@@ -226,7 +220,7 @@ estimates less sensitive to outliers.*
 
 ## Citation
 
-Mehrabi, Zia. Agricultural Loss Estimation. Better Planet Laboratory.
+Mehrabi, Zia. Loss x farm size. Better Planet Laboratory.
 2025.
 
 ### 

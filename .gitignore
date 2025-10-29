@@ -1,0 +1,39 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# macOS Thumbnails
+._*
+
+# macOS Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows system files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux system files
+*~
+.directory
+.Trash-*
+
+# Editor backup files
+*.swp
+*.swo
+*~
+.*.sw?
+
+# IDE files (optional - uncomment if needed)
+# .vscode/
+# .idea/
+# *.sublime-project
+# *.sublime-workspace
