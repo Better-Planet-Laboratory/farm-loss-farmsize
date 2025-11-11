@@ -1,4 +1,4 @@
-# Agricultural losses to droughts and floods
+# Agricultural losses to floods and droughts
 
 ## Overview
 
@@ -220,7 +220,13 @@ estimates less sensitive to outliers.*
 
 ## Citation
 
-Mehrabi, Zia. Loss x farm size. Better Planet Laboratory.
-2025.
+If you use this data and model, please cite:
 
+```   
+Mehrabi, Zia. 2025. Agricultural losses to floods and droughts. Better Planet Laboratory.
+```
+
+```   
+Mehrabi, Z, Fortin., J., and Ramankutty, N. 2017. Microshock Project. LUGE lab.
+```  
 ### 
