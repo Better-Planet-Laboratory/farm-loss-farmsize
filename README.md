@@ -1,4 +1,4 @@
-# Loss x farm size
+# Agricultural losses to droughts and floods
 
 ## Overview
 
